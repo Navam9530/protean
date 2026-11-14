@@ -1,0 +1,55 @@
+"""The user's profile, kept in the "profile" key of <home>/settings.json (not secret).
+
+Stored as a plain dict with only what cannot be derived:
+  source        None until the user chooses, then "hostname" or "github"
+  github_login  set while source == "github"
+  avatar_url    set while source == "github"
+The hostname owner is not stored; it is read from the OS whenever needed.
+"""
+
+from protean import config
+from protean.core.errors import ALREADY_SIGNED_IN, AppError
+from protean.core.storage import read_json, write_json_atomic
+from protean.modules.profile.hostname import read_hostname_owner
+from protean.modules.profile.schemas import Profile
+
+
+def _load() -> dict:
+    return (read_json(config.SETTINGS_FILE) or {}).get("profile", {})
+
+
+def _save(profile: dict) -> None:
+    settings = read_json(config.SETTINGS_FILE) or {}
+    settings["profile"] = profile
+    write_json_atomic(config.SETTINGS_FILE, settings)
+
+
+def get() -> Profile:
+    p = _load()
+    source = p.get("source")
+    owner = p["github_login"] if source == "github" else read_hostname_owner()
+    return Profile(source=source, owner=owner, avatar_url=p.get("avatar_url"))
+
+
+def is_github() -> bool:
+    return _load().get("source") == "github"
+
+
+def skip_github() -> Profile:
+    """First-run choice: use the OS hostname as the owner."""
+    if is_github():
+        raise AppError(409, ALREADY_SIGNED_IN, "Already signed in with GitHub.")
+    _save({"source": "hostname"})
+    return get()
+
+
+def set_github(login: str, avatar_url: str | None) -> Profile:
+    _save({"source": "github", "github_login": login, "avatar_url": avatar_url})
+    return get()
+
+
+def clear_github() -> Profile:
+    """Logout: back to the local profile. Existing families keep their ids."""
+    if is_github():
+        _save({"source": "hostname"})
+    return get()
