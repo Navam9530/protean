@@ -18,10 +18,11 @@ from protean.core.errors import (
     GITHUB_UNREACHABLE,
     AppError,
 )
-from protean.modules.auth import github, tokens
-from protean.modules.auth.schemas import LoginAttempt, LoginStatusOut, TokenPoll
-from protean.modules.profile import store as profile
-from protean.modules.profile.schemas import Profile
+from protean.identity import profile, tokens
+from protean.identity.profile import Profile
+from protean.integrations.github import oauth
+from protean.integrations.github.oauth import TokenPoll
+from protean.modules.auth.schemas import LoginAttempt, LoginStatusOut
 
 log = logging.getLogger(__name__)
 
@@ -30,18 +31,6 @@ SLOW_DOWN_STEP = 5  # GitHub: add 5 seconds when it says slow_down
 
 
 _attempt: LoginAttempt | None = None
-
-
-def access_token() -> str | None:
-    """For other backend modules (marketplace, publish). Never exposed through the API."""
-    token = tokens.load_token()
-    return token["access_token"] if token and profile.is_github() else None
-
-
-def drop_token() -> None:
-    """GitHub rejected the token (revoked or expired): forget it and use the local profile."""
-    tokens.delete_token()
-    profile.clear_github()
 
 
 def _remaining(a: LoginAttempt) -> int:
@@ -61,12 +50,12 @@ async def start() -> LoginStatusOut:
         await cancel()
 
     try:
-        device = await github.request_device_code(" ".join(scopes))
-    except github.GithubUnavailable as exc:
+        device = await oauth.request_device_code(" ".join(scopes))
+    except oauth.GithubUnavailable as exc:
         raise AppError(
             502, GITHUB_UNREACHABLE, "Could not reach GitHub. Check your connection."
         ) from exc
-    except github.GithubError as exc:
+    except oauth.GithubError as exc:
         raise AppError(502, GITHUB_ERROR, exc.description) from exc
 
     deadline = time.monotonic() + device.expires_in
@@ -120,8 +109,8 @@ async def _poll(a: LoginAttempt) -> None:
                 a.state = "expired"
                 return
             try:
-                result = await github.poll_token(a.device.device_code)
-            except github.GithubUnavailable:
+                result = await oauth.poll_token(a.device.device_code)
+            except oauth.GithubUnavailable:
                 failures += 1
                 if failures >= MAX_CONSECUTIVE_FAILURES:
                     a.state, a.error = "error", "Lost connection to GitHub."
@@ -162,8 +151,8 @@ async def _complete(a: LoginAttempt, granted: TokenPoll) -> None:
     global _attempt
     assert granted.access_token
     try:
-        user = await github.get_user(granted.access_token)
-    except github.GithubUnavailable, github.GithubError:
+        user = await oauth.get_user(granted.access_token)
+    except oauth.GithubUnavailable, oauth.GithubError:
         log.exception("Could not fetch the GitHub profile after login")
         a.state, a.error = "error", "Signed in, but could not read your GitHub profile."
         return

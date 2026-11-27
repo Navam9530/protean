@@ -2,53 +2,14 @@
 they are listed, read and deleted. Editing one means making a draft copy of it."""
 
 import shutil
-from pathlib import Path
 
 from protean import config
 from protean.core.errors import NOT_FOUND, AppError
 from protean.core.storage import read_json
-from protean.modules.families import published, values
-from protean.modules.families.api_schemas import FamilyOut, FamilySummary
-from protean.modules.families.validation.safety import kept
-
-
-def _count_agents(agents: object) -> int:
-    count, stack = 0, [agents]
-    while stack:
-        agent = stack.pop()
-        if isinstance(agent, dict):
-            count += 1
-            stack += agent.get("sub-agents") or []
-    return count
-
-
-def _size(folder: Path, family: dict) -> int:
-    """Bytes the family keeps: family.json, prompts, listed skills and MCP folders, LICENSE/README.
-    A draft's removed items are not counted: they are dropped when it is saved."""
-    files = [
-        folder / "family.json",
-        *folder.glob("prompts/*.md"),
-        *kept(folder, family),
-    ]
-    return sum(p.stat().st_size for p in files if p.is_file())
-
-
-def card_fields(folder: Path, family: dict, modified: int) -> dict:
-    """What a family card and a draft card both show, from the folder, family.json and its
-    modified time."""
-    root = family.get("agents")
-    root = root if isinstance(root, dict) else {}
-    return {
-        "name": folder.name,
-        "family": family,
-        "description": str(root.get("description", "")),
-        "family_version": str(family.get("familyVersion", "")),
-        "agent_count": _count_agents(root),
-        "size": _size(folder, family),
-        "chat_count": 0,  # phase 2
-        "updated_at": modified,
-        "accessed_at": modified,  # phase 2
-    }
+from protean.family import published, values
+from protean.family.card import card_fields
+from protean.family.folder import read_prompts
+from protean.modules.families.schemas import FamilyOut, FamilySummary
 
 
 def list_families() -> list[FamilySummary]:
@@ -74,14 +35,10 @@ def read(name: str) -> FamilyOut:
     family = read_json(folder / "family.json")
     if family is None:
         raise AppError(404, NOT_FOUND, f"There is no family named “{name}”.")
-    prompts = {
-        p.stem: p.read_text(encoding="utf-8", errors="replace")
-        for p in sorted((folder / "prompts").glob("*.md"))
-    }
     return FamilyOut(
         name=name,
         family=family,
-        prompts=prompts,
+        prompts=read_prompts(folder),
         secrets=values.read("family", name),
     )
 

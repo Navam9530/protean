@@ -30,3 +30,7 @@ dev = [
     "ruff>=0.17.4",
     "ty>=0.0.99",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]  # for `from helpers import ...`

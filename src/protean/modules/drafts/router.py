@@ -1,27 +1,23 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Path, Response, UploadFile
+from fastapi import APIRouter, Response, UploadFile
 from fastapi.responses import StreamingResponse
 
+from protean.core.patterns import ItemId, Name
 from protean.core.sse import sse_response
-from protean.modules.drafts import merge, save, store, uploads
+from protean.identity import profile
+from protean.integrations.github import availability
+from protean.modules.drafts import save, store, uploads
+from protean.modules.drafts.merge import service as merge
+from protean.modules.drafts.merge.schemas import MergePreview, MergeRequest, MergeTarget
 from protean.modules.drafts.schemas import (
     Blank,
     DraftEdit,
     DraftOut,
     DraftSource,
     DraftSummary,
-    MergePreview,
-    MergeRequest,
-    MergeTarget,
     Saved,
     SaveRequest,
     Uploaded,
 )
-from protean.modules.families.api_schemas import Name
-from protean.modules.families.schemas import ID
-from protean.modules.profile import store as profile
-from protean.modules.publish import availability
 
 router = APIRouter(prefix="/drafts", tags=["drafts"])
 
@@ -67,15 +63,12 @@ async def discard_draft(name: Name) -> Response:
     return Response(status_code=204)
 
 
-Item = Annotated[str, Path(pattern=ID.pattern)]
-
-
 @router.put("/{name}/agents/{agent_id}/{kind}/{item_id}", response_model=Uploaded)
 async def upload_item(
     name: Name,
-    agent_id: Item,
+    agent_id: ItemId,
     kind: uploads.Kind,
-    item_id: Item,
+    item_id: ItemId,
     files: list[UploadFile],
 ) -> Uploaded:
     """Upload a skill or MCP server folder for an agent, replacing an earlier upload.

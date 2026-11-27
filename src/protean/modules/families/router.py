@@ -4,8 +4,9 @@ from fastapi import APIRouter, Response
 from fastapi.responses import FileResponse
 from starlette.background import BackgroundTask
 
+from protean.core.patterns import Name
 from protean.modules.families import export, store
-from protean.modules.families.api_schemas import FamilyOut, FamilySummary, Name
+from protean.modules.families.schemas import FamilyOut, FamilySummary
 
 router = APIRouter(prefix="/families", tags=["families"])
 

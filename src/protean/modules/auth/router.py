@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 
+from protean.identity.profile import Profile
 from protean.modules.auth import login
 from protean.modules.auth.schemas import LoginStatusOut
-from protean.modules.profile.schemas import Profile
 
 router = APIRouter(prefix="/auth/github", tags=["auth"])
 

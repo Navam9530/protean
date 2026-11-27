@@ -14,8 +14,7 @@ from fastapi.testclient import TestClient
 
 from protean import config
 from protean.app import create_app
-from protean.modules.auth import tokens
-from protean.modules.profile import store
+from protean.identity import profile, tokens
 
 
 @pytest.fixture
@@ -23,7 +22,7 @@ def home(monkeypatch: pytest.MonkeyPatch) -> Path:
     """An empty workspace for each test (never the real ~/.protean)."""
     shutil.rmtree(config.HOME, ignore_errors=True)
     monkeypatch.setattr(config, "GITHUB_MIN_POLL_INTERVAL", 0.01)
-    store.reset_cache()  # the in-memory copies belong to the previous test's home
+    profile.reset_cache()  # the in-memory copies belong to the previous test's home
     tokens.reset_cache()
     return config.HOME
 

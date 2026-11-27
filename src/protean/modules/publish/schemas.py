@@ -2,7 +2,7 @@ from pydantic import Field
 
 from protean import config
 from protean.core.schemas import CamelModel
-from protean.modules.families.licenses import License
+from protean.family.licenses import License
 
 
 class PublishRequest(CamelModel):
@@ -23,3 +23,9 @@ class PublishForm(CamelModel):
     description: str  # the About text last sent; "" before the first publish
     readme: str
     license: str | None  # "mit", "apache-2.0", "other"; None when there is no LICENSE
+
+
+class ListedOut(CamelModel):
+    """Whether the published repo is in the marketplace (has the topic)."""
+
+    listed: bool

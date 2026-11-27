@@ -14,16 +14,16 @@ from protean import config
 from protean.core.errors import INTERNAL, INVALID_FAMILY, NOT_FOUND, AppError
 from protean.core.sse import Event
 from protean.core.storage import read_json
-from protean.modules.families import values, version
-from protean.modules.families.files import (
+from protean.family import values, version
+from protean.family.folder import (
     copy_family,
     differs,
     family_json,
     replace_folder,
 )
-from protean.modules.families.schemas import read_family, walk_agents
-from protean.modules.families.validation import integrity, workspace
-from protean.modules.families.validation.stream import Checked, validate
+from protean.family.schemas import read_family, walk_agents
+from protean.family.validation import integrity, workspace
+from protean.family.validation.stream import Checked, validate
 
 
 def _size(folder) -> int:

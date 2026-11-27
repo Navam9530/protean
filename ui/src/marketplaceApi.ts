@@ -41,7 +41,7 @@ export const searchRepos = (q: string, page = 1) =>
 export const getRepoDetail = (owner: string, repo: string, version?: string) =>
   api<RepoDetail>(`/marketplace/${owner}/${repo}${version ? `?version=${encodeURIComponent(version)}` : ""}`);
 export const importRepo = (owner: string, repo: string, version: string | undefined, on: OnEvent) =>
-  stream<ImportedFamily>(`/marketplace/${owner}/${repo}/import`, version ? { version } : undefined, on);
+  stream<ImportedFamily>(`/imports/github/${owner}/${repo}`, version ? { version } : undefined, on);
 /** A family folder from the user's computer that is not on GitHub yet. The backend names it <you>_<folder>. */
 export const importFolder = (files: File[], on: OnEvent) =>
   stream<ImportedFamily>("/imports/upload", folderForm(files), on);

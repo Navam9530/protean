@@ -22,7 +22,7 @@ from protean.modules.auth import login
 from protean.modules.auth.router import router as auth_router
 from protean.modules.drafts.router import router as drafts_router
 from protean.modules.families.router import router as families_router
-from protean.modules.marketplace.router import imports_router
+from protean.modules.imports.router import router as imports_router
 from protean.modules.marketplace.router import router as marketplace_router
 from protean.modules.profile.router import router as profile_router
 from protean.modules.publish.router import router as publish_router

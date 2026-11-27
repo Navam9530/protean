@@ -9,14 +9,13 @@ that is not listed yet (it is left out when saved).
 import shutil
 import uuid
 from pathlib import Path
-from typing import BinaryIO, Literal
+from typing import BinaryIO
 
 from protean import config
 from protean.core.errors import INVALID_DRAFT, NOT_FOUND, TOO_LARGE, AppError
 from protean.core.storage import read_json
-from protean.modules.families.validation import archive, safety
-
-Kind = Literal["skills", "mcps"]
+from protean.family.folder import Kind
+from protean.family.validation import archive, safety
 
 
 def _draft(name: str) -> Path:

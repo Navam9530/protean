@@ -8,6 +8,17 @@ from pathlib import Path
 from protean import config
 from protean.core.errors import ALREADY_EXISTS, CONFLICT, NOT_FOUND, AppError
 from protean.core.storage import read_json, write_json_atomic, write_text_atomic
+from protean.family import values
+from protean.family.card import card_fields
+from protean.family.folder import (
+    build_folder,
+    copy_family,
+    family_json,
+    read_prompts,
+)
+from protean.family.schemas import Agent, Family, read_family
+from protean.family.validation import safety
+from protean.identity import profile
 from protean.modules.drafts.schemas import (
     Blank,
     DraftDoc,
@@ -18,12 +29,6 @@ from protean.modules.drafts.schemas import (
     FromFamily,
     FromImport,
 )
-from protean.modules.families import values
-from protean.modules.families.files import build_folder, copy_family, family_json
-from protean.modules.families.schemas import Agent, Family, read_family
-from protean.modules.families.store import card_fields
-from protean.modules.families.validation import safety
-from protean.modules.profile import store as profile
 
 
 def _folder(name: str) -> Path:
@@ -83,10 +88,7 @@ def read(name: str) -> DraftOut:
     family = read_json(folder / "family.json")
     if family is None:
         raise AppError(404, NOT_FOUND, f"There is no draft named “{name}”.")
-    prompts = {
-        p.stem: p.read_text(encoding="utf-8", errors="replace")
-        for p in sorted((folder / "prompts").glob("*.md"))
-    }
+    prompts = read_prompts(folder)
     return DraftOut(
         name=name,
         family=family,

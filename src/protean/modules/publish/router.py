@@ -1,11 +1,10 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from protean.core.schemas import CamelModel
+from protean.core.patterns import Name
 from protean.core.sse import sse_response
-from protean.modules.families.api_schemas import Name
 from protean.modules.publish import service
-from protean.modules.publish.schemas import PublishForm, PublishRequest
+from protean.modules.publish.schemas import ListedOut, PublishForm, PublishRequest
 
 router = APIRouter(prefix="/families", tags=["publish"])
 
@@ -27,10 +26,6 @@ async def publish_family(
     README and license the user changed; see PublishRequest.
     """
     return sse_response(service.publish(name, body or PublishRequest()))
-
-
-class ListedOut(CamelModel):
-    listed: bool
 
 
 @router.post("/{name}/publish/topic", response_model=ListedOut)
