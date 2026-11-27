@@ -14,6 +14,8 @@ from protean.core.errors import CORRUPT_FILE, AppError
 def ensure_workspace() -> None:
     config.HOME.mkdir(parents=True, exist_ok=True)
     config.FAMILIES_DIR.mkdir(exist_ok=True)
+    config.IMPORTS_DIR.mkdir(exist_ok=True)
+    config.DRAFTS_DIR.mkdir(exist_ok=True)
     config.KEYS_DIR.mkdir(mode=0o700, exist_ok=True)
     config.KEYS_DIR.chmod(0o700)  # enforce even if it already existed
 
@@ -36,6 +38,11 @@ def read_json(path: Path) -> dict[str, Any] | None:
 
 
 def write_json_atomic(path: Path, data: dict[str, Any]) -> None:
+    """Write JSON via a temp file + rename, so readers never see a partial file. Mode 0600."""
+    write_text_atomic(path, json.dumps(data, indent=2))
+
+
+def write_text_atomic(path: Path, text: str) -> None:
     """Write via a temp file + rename, so readers never see a partial file. Result is mode 0600."""
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(
@@ -43,7 +50,7 @@ def write_json_atomic(path: Path, data: dict[str, Any]) -> None:
     )  # created 0600
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+            f.write(text)
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)

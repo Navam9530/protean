@@ -35,7 +35,7 @@ def test_skip_github_persists_and_is_idempotent(client, home: Path) -> None:
     assert first["source"] == "hostname"
     assert client.post("/api/profile/skip-github").json() == first
     assert client.get("/api/profile").json() == first
-    assert (home / "settings.json").exists()
+    assert (home / "profile.json").exists()
 
 
 def test_workspace_layout_and_permissions(client, home: Path) -> None:

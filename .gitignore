@@ -2,4 +2,3 @@ uthuthi*
 **/__pycache__/
 .ruff_cache/
 src/protean/web_dist/
-logs/

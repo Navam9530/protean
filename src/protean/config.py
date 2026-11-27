@@ -13,12 +13,14 @@ VERSION = _PROJECT["Version"]
 DESCRIPTION = _PROJECT["Summary"]
 
 HOME = Path(os.environ.get("PROTEAN_HOME", "~/.protean")).expanduser()
+IMPORTS_DIR = HOME / "imports"  # downloaded repos (short-lived)
+DRAFTS_DIR = HOME / "drafts"  # families being built; never deleted automatically
 FAMILIES_DIR = HOME / "families"
 KEYS_DIR = HOME / "keys"
-SETTINGS_FILE = HOME / "settings.json"
+PROFILE_FILE = HOME / "profile.json"
+PUBLISHED_FILE = HOME / "published.json"  # what was last published, by family name
 GITHUB_TOKEN_FILE = KEYS_DIR / "github.json"
-
-LOG_DIR = Path(__file__).resolve().parents[2] / "logs"  # beside src/
+LOG_DIR = HOME / "logs"
 LOG_FILE = LOG_DIR / "protean.log"
 LOG_MAX_BYTES = 5_000_000  # 5 MB
 LOG_BACKUPS = 5
@@ -36,3 +38,17 @@ PING_RESPONSE = {"app": "protean"}
 GITHUB_CLIENT_ID = "Ov23licFzZUlfSOQC8iY"
 GITHUB_SCOPES = ("public_repo",)
 GITHUB_MIN_POLL_INTERVAL = 1.0
+
+SCHEMA_VERSION = 1  # the only family.json schema this Protean understands
+SCHEMA_URL = "https://agentsmp.com/schemas/family/v1.json"
+
+# Marketplace. The limits apply to importing and publishing, so both sides agree.
+MARKETPLACE_TOPIC = "agents-marketplace"
+PROTEAN_TOPIC = "protean"  # marks a repo that Protean created, so it may push to it
+SEARCH_PAGE_SIZE = 20
+SEARCH_CACHE_SECONDS = 60
+MAX_ZIP_BYTES = 20_000_000  # ~20 MB
+MAX_UNZIPPED_BYTES = 50_000_000  # ~50 MB
+MAX_FILES = 500
+MAX_README_CHARS = 200_000
+DRAFT_DISK_FACTOR = 2  # a draft may hold removed items up to this many times the limits

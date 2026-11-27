@@ -14,7 +14,7 @@ async def start_login() -> LoginStatusOut:
 
 
 @router.get("/status", response_model=LoginStatusOut)
-async def login_status() -> LoginStatusOut:
+def login_status() -> LoginStatusOut:
     return login.status()
 
 

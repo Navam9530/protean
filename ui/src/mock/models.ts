@@ -5,4 +5,3 @@ export const PROVIDERS: Record<string, string[]> = {
   ollama: ["llama4", "qwen3-coder"],
 };
 
-export const AVAILABLE_SKILLS = ["pr-review", "web-research", "summarize", "sql-analyst", "changelog"];

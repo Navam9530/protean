@@ -99,3 +99,7 @@ export const useProfile = create<Profile>()((set, get) => {
     },
   };
 });
+
+/** True when the signed-in GitHub user is the owner of the repo (GitHub logins are case-insensitive). */
+export const ownsRepo = (p: Pick<ProfileData, "source" | "owner">, repoOwner: string) =>
+  p.source === "github" && p.owner.toLowerCase() === repoOwner.toLowerCase();

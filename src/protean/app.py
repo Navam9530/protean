@@ -13,14 +13,20 @@ from fastapi import APIRouter, FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from protean import config
-from protean.core import ports
+from protean.core import network, ports
 from protean.core.errors import install_error_handlers
 from protean.core.logger import setup_logging
 from protean.core.security import install_local_guard
 from protean.core.storage import ensure_workspace
 from protean.modules.auth import login
 from protean.modules.auth.router import router as auth_router
+from protean.modules.drafts.router import router as drafts_router
+from protean.modules.families.router import router as families_router
+from protean.modules.marketplace.router import imports_router
+from protean.modules.marketplace.router import router as marketplace_router
 from protean.modules.profile.router import router as profile_router
+from protean.modules.publish.router import router as publish_router
+from protean.modules.reveal.router import router as reveal_router
 
 log = logging.getLogger(__name__)
 
@@ -36,6 +42,7 @@ async def lifespan(_: FastAPI) -> AsyncGenerator[None]:
         ).start()
     yield
     await login.cancel()  # stop a login that is still polling GitHub
+    await network.close()
 
 
 def create_app() -> FastAPI:
@@ -58,6 +65,12 @@ def create_app() -> FastAPI:
     api = APIRouter(prefix="/api")
     api.include_router(profile_router)
     api.include_router(auth_router)
+    api.include_router(marketplace_router)
+    api.include_router(imports_router)
+    api.include_router(drafts_router)
+    api.include_router(families_router)
+    api.include_router(publish_router)
+    api.include_router(reveal_router)
     app.include_router(api)
 
     if (WEB_DIST / "index.html").exists():  # built UI shipped inside the package

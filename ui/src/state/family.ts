@@ -1,25 +1,25 @@
-import type { Family } from "../types/family";
-
-export const SEMVER = /^\d+\.\d+\.\d+$/;
-
-/** "Code Review Crew" -> "code-review-crew". The family id is derived from its name. */
+/** "Code Review Crew" -> "code-review-crew". Becomes the repo part of the family name. */
 export function slugify(name: string): string {
   return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 
-/** Full family id, matching the folder name: <owner>_<slug>. */
-export const familyId = (f: Pick<Family, "name" | "slug" | "owner">) => `${f.owner ?? "local"}_${f.slug ?? slugify(f.name)}`;
+export const dateFmt = new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", year: "numeric" });
 
-export function bumpPatch(v: string): string {
-  if (!SEMVER.test(v)) return v;
-  const [a, b, c] = v.split(".").map(Number);
-  return `${a}.${b}.${c + 1}`;
+/** "5m ago", "3d ago", or a date for anything older than a month. */
+/** A byte count for a card: 812 B, 14.2 KB, 3.1 MB. */
+export function bytes(n: number) {
+  if (n < 1000) return `${n} B`;
+  if (n < 1_000_000) return `${(n / 1000).toFixed(1)} KB`;
+  return `${(n / 1_000_000).toFixed(1)} MB`;
 }
 
-const content = (f: Family) => JSON.stringify([f.description ?? "", f.agents]);
-
-/** True when the family differs from its last saved state. */
-export function isModified(draft: Family, saved: Family | null): boolean {
-  if (!saved) return false;
-  return content(draft) !== content(saved) || draft.version !== saved.version;
+export function ago(t?: number) {
+  if (!t) return "—";
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.round(h / 24);
+  return d < 30 ? `${d}d ago` : dateFmt.format(t);
 }

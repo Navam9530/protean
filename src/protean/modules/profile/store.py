@@ -1,4 +1,4 @@
-"""The user's profile, kept in the "profile" key of <home>/settings.json (not secret).
+"""The user's profile, kept in <home>/profile.json (not secret).
 
 Stored as a plain dict with only what cannot be derived:
   source        None until the user chooses, then "hostname" or "github"
@@ -13,15 +13,25 @@ from protean.core.storage import read_json, write_json_atomic
 from protean.modules.profile.hostname import read_hostname_owner
 from protean.modules.profile.schemas import Profile
 
+_cache: dict | None = None  # the file is read once; every write goes through _save
+
+
+def reset_cache() -> None:
+    global _cache
+    _cache = None
+
 
 def _load() -> dict:
-    return (read_json(config.SETTINGS_FILE) or {}).get("profile", {})
+    global _cache
+    if _cache is None:
+        _cache = read_json(config.PROFILE_FILE) or {}
+    return _cache
 
 
 def _save(profile: dict) -> None:
-    settings = read_json(config.SETTINGS_FILE) or {}
-    settings["profile"] = profile
-    write_json_atomic(config.SETTINGS_FILE, settings)
+    global _cache
+    write_json_atomic(config.PROFILE_FILE, profile)
+    _cache = profile
 
 
 def get() -> Profile:

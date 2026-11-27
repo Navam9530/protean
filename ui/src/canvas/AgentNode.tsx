@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { Import, Plus } from "lucide-react";
 import { useStore } from "../state/store";
+import { useMarketplace } from "../state/marketplace";
 import type { Agent } from "../types/family";
 
 export type AgentNodeData = { agent: Agent; isRoot: boolean };
@@ -12,6 +13,7 @@ function AgentNode({ data, id }: NodeProps) {
   const { agent, isRoot } = data as unknown as AgentNodeData;
   const selected = useStore((s) => s.selectedId === id);
   const { select, addChild } = useStore();
+  const openMarketplace = useMarketplace((m) => m.open);
   return (
     <div className={`agent ${selected ? "selected" : ""} ${isRoot ? "is-root" : ""}`} onClick={() => select(id)}>
       {!isRoot && <Handle type="target" position={Position.Left} />}
@@ -29,7 +31,7 @@ function AgentNode({ data, id }: NodeProps) {
       </div>
       <div className="addzone nodrag nopan" onClick={(e) => e.stopPropagation()}>
         <button className="add-btn" title="Add sub-agent" onClick={() => addChild(id)}><Plus size={15} /></button>
-        <button className="add-btn" title="Import family (coming soon)" onClick={() => alert("Import from marketplace is coming soon.")}>
+        <button className="add-btn" title="Import a family under this agent" onClick={() => openMarketplace({ kind: "agent", parentId: id })}>
           <Import size={13} />
         </button>
       </div>

@@ -6,8 +6,17 @@ export interface McpEntry {
   url?: string; // not set for stdio
   clientHeaders?: string[]; // not set for stdio
   serverEnv?: string[]; // not set when external
+  // Their values. UI only: the backend keeps them in the keys folder, never in family.json.
+  clientHeaderValues?: Record<string, string>;
+  serverEnvValues?: Record<string, string>;
   disabledTools?: string[];
-  aliases?: Record<string, string>;
+  toolAliases?: Record<string, string>;
+}
+
+export interface Skill {
+  id: string;
+  env?: string[]; // names of the environment variables its scripts need
+  envValues?: Record<string, string>; // UI only: the values are kept in the keys folder, never in family.json
 }
 
 export interface ModelRef {
@@ -20,32 +29,20 @@ export interface Agent {
   name: string;
   description: string;
   model?: ModelRef;
+  /** UI only: computed by the canvas layout, never stored in family.json. */
   position: { x: number; y: number };
   mcps: McpEntry[];
-  skills: string[];
+  skills: Skill[];
   "sub-agents": Agent[];
   /** Lives in prompts/<id>.md, not in family.json. */
   prompt?: string;
 }
 
+/** The open draft. `name` is <owner>_<repo>, the folder name; it is UI only and never in family.json. */
 export interface Family {
   $schema: string;
   schemaVersion: 1;
   name: string;
-  description?: string;
-  version: string;
+  familyVersion: string; // read-only here: the backend raises it when a saved family is saved again
   agents: Agent;
-  /** UI-only bookkeeping */
-  createdAt?: number;
-  updatedAt?: number;
-  lastAccessedAt?: number;
-  /** Placeholder until the chat screen and backend exist. */
-  conversationCount?: number;
-  uid: string;
-  /** Family id derived from the name (becomes the repo name on GitHub). Immutable. */
-  slug?: string;
-  /** Owner prefix of the family id (<owner>_<slug>): GitHub username, or the OS hostname when created without sign-in. */
-  owner?: string;
-  /** False when created without GitHub sign-in; such families can never be published. */
-  publishable?: boolean;
 }

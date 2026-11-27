@@ -1,15 +1,20 @@
 import { useState } from "react";
-import { Trash2, X, Plus } from "lucide-react";
+import { Trash2, X, FolderUp, Info } from "lucide-react";
 import { useStore } from "../state/store";
 import { findAgent, walk } from "../state/tree";
-import { AVAILABLE_SKILLS, PROVIDERS } from "../mock/models";
+import { PROVIDERS } from "../mock/models";
+import { uploadItem } from "../backend";
+import { slugify } from "../state/family";
 import ConfirmDialog from "../components/ConfirmDialog";
 import McpEditor from "./McpEditor";
+import SkillRow from "./SkillRow";
 
 type Tab = "general" | "prompt" | "mcps" | "skills";
 
 export default function AgentPanel() {
-  const { draft, selectedId, select, updateAgent, renameAgentId, deleteAgent } = useStore();
+  const { draft, selectedId, select, updateAgent, renameAgentId, deleteAgent, ensureDraft } = useStore();
+  const [skillError, setSkillError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [tab, setTab] = useState<Tab>("general");
   const agent = draft && selectedId ? findAgent(draft.agents, selectedId) : null;
   const [idText, setIdText] = useState(agent?.id ?? "");
@@ -19,6 +24,25 @@ export default function AgentPanel() {
   const isRoot = draft.agents.id === agent.id;
   const provider = agent.model?.provider ?? "anthropic";
   const set = (p: Parameters<typeof updateAgent>[1]) => updateAgent(agent.id, p);
+  // Skill and MCP folders are stored under the agent's id, so the id is fixed once it has any.
+  const idLocked = agent.skills.length > 0 || agent.mcps.some((m) => m.managedBy === "harness");
+
+  /** Upload first, then list the id in family.json (autosave writes it). */
+  async function addSkill(files: File[]) {
+    if (!files.length || !draft) return;
+    const id = slugify(files[0].webkitRelativePath.split("/")[0]);
+    setSkillError(null);
+    if (!id) return setSkillError("The folder name must contain letters or digits.");
+    setUploading(true);
+    try {
+      await ensureDraft(); // the folder goes into the draft, which is made on the first change
+      await uploadItem(draft.name, agent!.id, "skills", id, files);
+      if (!agent!.skills.some((s) => s.id === id)) set({ skills: [...agent!.skills, { id }] });
+    } catch (e) { setSkillError((e as Error).message); }
+    setUploading(false);
+  }
+  /** Only unlist it: the folder stays in the draft until it is saved, so undo can bring it back. */
+  const dropSkill = (id: string) => set({ skills: agent!.skills.filter((x) => x.id !== id) });
 
   const tabs: [Tab, string, React.ReactNode, number?][] = [
     ["general", "General", null],
@@ -29,16 +53,13 @@ export default function AgentPanel() {
 
   return (
     <aside className="panel">
-      <div className="panel-head">
-        <div className="t"><b>{agent.name || agent.id}</b><span>{isRoot ? "root agent" : "sub-agent"} · {agent.id}</span></div>
-        <button className="btn ghost icon" onClick={() => select(null)}><X size={16} /></button>
-      </div>
       <div className="tabs">
         {tabs.map(([k, label, icon, n]) => (
           <button key={k} className={`tab ${tab === k ? "on" : ""}`} onClick={() => setTab(k)}>
             {label}{n ? <span className="count">{n}</span> : null}
           </button>
         ))}
+        <button className="btn ghost icon tabs-close" title="Close" aria-label="Close" onClick={() => select(null)}><X size={16} /></button>
       </div>
 
       <div className="panel-body">
@@ -54,6 +75,8 @@ export default function AgentPanel() {
                 <input
                   className={`input mono ${idErr ? "error" : ""}`}
                   value={idText}
+                  disabled={idLocked}
+                  title={idLocked ? "Remove this agent’s skills and harness MCP servers to change its id" : undefined}
                   onChange={(e) => {
                     const v = e.target.value.toLowerCase();
                     setIdText(v);
@@ -65,7 +88,13 @@ export default function AgentPanel() {
             </div>
             {idErr && <p className="hint" style={{ color: "var(--danger)", marginTop: -8 }}>IDs must be unique, lowercase letters, digits or dashes.</p>}
             <div className="field">
-              <label>Description</label>
+              <label>Description
+                {isRoot && (
+                  <span className="info-tip" tabIndex={0} data-tip="This text is shown on the family’s card on the home screen." aria-label="This text is shown on the family’s card on the home screen.">
+                    <Info size={12} />
+                  </span>
+                )}
+              </label>
               <textarea className="textarea" style={{ minHeight: 64 }} value={agent.description} placeholder="What does this agent do? Parents read this to decide when to call it."
                 onChange={(e) => set({ description: e.target.value })} />
             </div>
@@ -103,22 +132,23 @@ export default function AgentPanel() {
           </div>
         )}
 
-        {tab === "mcps" && <McpEditor value={agent.mcps} onChange={(mcps) => set({ mcps })} />}
+        {tab === "mcps" && <McpEditor draft={draft.name} agentId={agent.id} value={agent.mcps} onChange={(mcps) => set({ mcps })} />}
 
         {tab === "skills" && (
           <>
-            <div className="chips" style={{ marginBottom: 16 }}>
-              {agent.skills.length === 0 && <span className="hint">No skills attached.</span>}
-              {agent.skills.map((s) => (
-                <span className="chip" key={s}>{s}<button onClick={() => set({ skills: agent.skills.filter((x) => x !== s) })}><X size={11} /></button></span>
-              ))}
-            </div>
-            <div className="label" style={{ marginBottom: 8 }}>Available</div>
-            {AVAILABLE_SKILLS.filter((s) => !agent.skills.includes(s)).map((s) => (
-              <button key={s} className="child-link" onClick={() => set({ skills: [...agent.skills, s] })}>
-                <Plus size={13} color="var(--muted)" /> <span style={{ fontFamily: "var(--mono)", fontSize: 12 }}>{s}</span>
-              </button>
+            {agent.skills.length === 0 && <p className="hint" style={{ marginTop: 0 }}>No skills attached.</p>}
+            {agent.skills.map((s) => (
+              <SkillRow key={s.id} draft={draft.name} agentId={agent.id} skill={s} onRemove={() => dropSkill(s.id)}
+                onChange={(n) => set({ skills: agent.skills.map((x) => (x.id === s.id ? n : x)) })} />
             ))}
+            <label className={`btn ${uploading ? "disabled" : ""}`}>
+              <FolderUp size={14} /> {uploading ? "Uploading…" : "Add a skill folder"}
+              <input type="file" hidden disabled={uploading}
+                // @ts-expect-error webkitdirectory is not in the DOM typings
+                webkitdirectory="" onChange={(e) => { void addSkill(Array.from(e.target.files ?? [])); e.target.value = ""; }} />
+            </label>
+            <p className="hint">The folder must contain SKILL.md. Its name becomes the skill’s id; uploading the same name again replaces it.</p>
+            {skillError && <div className="mp-error">{skillError}</div>}
           </>
         )}
       </div>

@@ -195,8 +195,8 @@ def test_token_without_scope_is_asked_again(client, home) -> None:
     (home / "keys" / "github.json").write_text(
         json.dumps({"access_token": "gho_old", "scope": ""})
     )
-    (home / "settings.json").write_text(
-        json.dumps({"profile": {"source": "github", "github_login": "navateja"}})
+    (home / "profile.json").write_text(
+        json.dumps({"source": "github", "github_login": "navateja"})
     )
     with respx.mock(assert_all_called=False) as m:
         mock_github(m, [])

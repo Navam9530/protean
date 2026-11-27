@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LogOut, Orbit } from "lucide-react";
+import { LogOut, Menu, Orbit, PanelLeftClose } from "lucide-react";
 import { useProfile } from "../state/profile";
 import ConfirmDialog from "./ConfirmDialog";
 
@@ -11,12 +11,31 @@ export function Avatar({ name, url, size = 28 }: { name: string; url?: string | 
   );
 }
 
+const KEY = "protean.sidebar.collapsed";
+function remembered() {
+  try { return localStorage.getItem(KEY) === "1"; } catch { return false; }
+}
+
 export default function Sidebar() {
   const { owner, source, avatarUrl, openAuth, logout } = useProfile();
   const [confirming, setConfirming] = useState(false);
+  const [collapsed, setCollapsed] = useState(remembered);
+  const toggle = () => {
+    setCollapsed(!collapsed);
+    try { localStorage.setItem(KEY, collapsed ? "0" : "1"); } catch { /* the choice is just not remembered */ }
+  };
   return (
-    <aside className="sidebar">
-      <div className="sb-brand"><Orbit size={18} color="var(--accent)" /> Protean</div>
+    <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
+      <div className="sb-brand">
+        {collapsed ? (
+          <button className="btn ghost icon" title="Open sidebar" aria-label="Open sidebar" onClick={toggle}><Menu size={17} /></button>
+        ) : (
+          <>
+            <Orbit size={18} color="var(--accent)" /> <span className="sb-title">Protean</span>
+            <button className="btn ghost icon sb-toggle" title="Close sidebar" aria-label="Close sidebar" onClick={toggle}><PanelLeftClose size={16} /></button>
+          </>
+        )}
+      </div>
       <nav className="sb-nav">{/* sections will be added later */}</nav>
       <button
         className="sb-profile"
@@ -30,7 +49,7 @@ export default function Sidebar() {
         </span>
       </button>
       {source === "github" && (
-        <button className="sb-logout" onClick={() => setConfirming(true)}><LogOut size={14} /> Sign out</button>
+        <button className="sb-logout" title="Sign out" onClick={() => setConfirming(true)}><LogOut size={14} /> <span>Sign out</span></button>
       )}
       {confirming && (
         <ConfirmDialog

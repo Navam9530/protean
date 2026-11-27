@@ -1,11 +1,19 @@
+import { useMemo } from "react";
 import type { Agent } from "../types/family";
-import { NODE_H, NODE_W, walk } from "../state/tree";
+import { NODE_H, NODE_W, layout, walk } from "../state/tree";
 
-/** Tiny structural preview of a family's agent tree. */
-export default function TreeThumb({ root }: { root: Agent }) {
-  const items: Agent[] = [];
-  const parents = new Map<string, Agent>();
-  walk(root, (a, p) => { items.push(a); if (p) parents.set(a.id, p); });
+/** A minimap of a family's agent tree, drawn from family.json as the backend lists it. */
+export default function TreeThumb({ family }: { family: Record<string, any> }) {
+  const { items, parents } = useMemo(() => {
+    const root = structuredClone(family.agents) as Agent;
+    walk(root, (a) => { a["sub-agents"] ??= []; a.position = { x: 0, y: 0 }; });
+    layout(root); // the same tidy layout as the canvas
+    const items: Agent[] = [];
+    const parents = new Map<string, Agent>();
+    walk(root, (a, p) => { items.push(a); if (p) parents.set(a.id, p); });
+    return { items, parents };
+  }, [family]);
+
   const xs = items.map((a) => a.position.x), ys = items.map((a) => a.position.y);
   const minX = Math.min(...xs), minY = Math.min(...ys);
   const w = Math.max(...xs) - minX + NODE_W, h = Math.max(...ys) - minY + NODE_H;

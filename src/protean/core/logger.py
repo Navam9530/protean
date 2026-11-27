@@ -1,4 +1,4 @@
-"""Logging setup: a rotating file only in `logs/` beside src/. Call once from main()."""
+"""Logging setup: a rotating file in `~/.protean/logs/`. Call once from main()."""
 
 import logging
 from logging.handlers import RotatingFileHandler

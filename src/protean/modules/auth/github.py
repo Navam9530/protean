@@ -1,8 +1,9 @@
-"""The only code that talks to GitHub: three calls, each with its own short-lived HTTP client."""
+"""GitHub calls for signing in: device code, token poll and the user profile."""
 
 import httpx
 
 from protean import config
+from protean.core import network
 from protean.modules.auth.schemas import DeviceCode, GithubUser, TokenPoll
 
 DEVICE_CODE_URL = "https://github.com/login/device/code"
@@ -27,8 +28,7 @@ class GithubError(Exception):
 
 async def _send(method: str, url: str, **kwargs) -> dict:
     try:
-        async with httpx.AsyncClient(timeout=15) as http:
-            resp = await http.request(method, url, **kwargs)
+        resp = await network.client().request(method, url, **kwargs)
         body = resp.json()
     except httpx.HTTPError as exc:
         raise GithubUnavailable(str(exc) or type(exc).__name__) from exc

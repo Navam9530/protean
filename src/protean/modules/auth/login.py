@@ -9,6 +9,7 @@ Only one login can run at a time, so its state is a module-level variable.
 import asyncio
 import contextlib
 import logging
+import time
 
 from protean import config
 from protean.core.errors import (
@@ -31,8 +32,20 @@ SLOW_DOWN_STEP = 5  # GitHub: add 5 seconds when it says slow_down
 _attempt: LoginAttempt | None = None
 
 
+def access_token() -> str | None:
+    """For other backend modules (marketplace, publish). Never exposed through the API."""
+    token = tokens.load_token()
+    return token["access_token"] if token and profile.is_github() else None
+
+
+def drop_token() -> None:
+    """GitHub rejected the token (revoked or expired): forget it and use the local profile."""
+    tokens.delete_token()
+    profile.clear_github()
+
+
 def _remaining(a: LoginAttempt) -> int:
-    return max(0, int(a.deadline - asyncio.get_running_loop().time()))
+    return max(0, int(a.deadline - time.monotonic()))
 
 
 async def start() -> LoginStatusOut:
@@ -56,7 +69,7 @@ async def start() -> LoginStatusOut:
     except github.GithubError as exc:
         raise AppError(502, GITHUB_ERROR, exc.description) from exc
 
-    deadline = asyncio.get_running_loop().time() + device.expires_in
+    deadline = time.monotonic() + device.expires_in
     _attempt = LoginAttempt(device=device, scopes=scopes, deadline=deadline)
     _attempt.task = asyncio.create_task(_poll(_attempt))
     return status()
@@ -98,13 +111,12 @@ async def logout() -> Profile:
 
 
 async def _poll(a: LoginAttempt) -> None:
-    loop = asyncio.get_running_loop()
     interval: float = a.device.interval  # grows when GitHub says slow_down
     failures = 0
     try:
         while True:
             await asyncio.sleep(max(interval, config.GITHUB_MIN_POLL_INTERVAL))
-            if loop.time() >= a.deadline:
+            if time.monotonic() >= a.deadline:
                 a.state = "expired"
                 return
             try:
